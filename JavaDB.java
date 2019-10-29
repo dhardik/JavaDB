@@ -6,6 +6,7 @@ import java.util.Scanner;
 
 class QueryProcessor {
   private String query;
+  private File target;
 
   public QueryProcessor(String str) {
     setQuery(str);
@@ -15,6 +16,7 @@ class QueryProcessor {
     this.query = str;
     lTrim();
     rTrim();
+    target = new File("/home/hardik/Desktop/JavaDB/tables");
     if(identifyCommand().equalsIgnoreCase("create")) {
       if(checkForCreate() == true) {
         String[] words = this.query.split(" ");
@@ -182,8 +184,7 @@ class QueryProcessor {
       }
     }
     try {
-      File target = new File("/home/hardik/Desktop/JavaDB/tables",table_name+".txt");
-      FileWriter fw = new FileWriter(target);
+      FileWriter fw = new FileWriter(new File(target,table_name+".txt"));
       for(int i = 0;i<str.length();i++) {
         fw.write(str.charAt(i));
       }
