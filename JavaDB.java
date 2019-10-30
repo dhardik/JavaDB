@@ -115,77 +115,39 @@ class QueryProcessor {
         }
       }
     }
-    in_word=0;
-    word_count = 0;
+    in_word = 0;
     for(i=end+1;i<temp.length();i++) {
       if(temp.charAt(i) != ' ' && in_word == 0) {
-        in_word = 1;
+        if(temp.charAt(i) == '(' || temp.charAt(i) == ')') {
+          return false;
+        }
         start = i;
-        word_count++;
+        in_word = 1;
       }
-      else if((temp.charAt(i) == ' ' || temp.charAt(i) == '(') && in_word == 1) {
-        in_word = 0;
+      else if(temp.charAt(i) == ' ' && in_word == 1) {
         end = i-1;
-        str+=" "+temp.substring(start,end+1)+" ( ";
-        word_count++;
+        in_word = 0;
+        str += " "+temp.substring(start,end+1);
         break;
       }
     }
-    if(word_count != 2) {
-      return false;
-    }
-    word_count = 0;
-    for(i=end+1;i<temp.length();i++) {
+    for(i = end+1;i<temp.length();i++) {
       if(temp.charAt(i) != ' ') {
-        if(temp.charAt(i) == '(' && word_count == 0) {
-          word_count++;
-        }
-        else if(word_count == 0) {
+        if(temp.charAt(i) != '(') {
           return false;
         }
         else {
-          start = i;
           break;
         }
       }
     }
-    int flag=0;
-    while(flag == 0) {
-      in_word=0;
-      for(i=start;i<temp.length();i++) {
-        if(temp.charAt(i) != ' ' && in_word == 0) {
-          in_word = 1;
-          start = i;
-        }
-        else if((temp.charAt(i) == ' ' || temp.charAt(i) == ',' || temp.charAt(i) == ')') && in_word == 1) {
-          end = i-1;
-          in_word = 0;
-          str+=temp.substring(start,end+1);
-          if(temp.charAt(i) == ' ') {
-            i++;
-            while(true) {
-              if(i<temp.length()  && temp.charAt(i) != ' ') {
-                break;
-              }
-              else {
-                i++;
-              }
-            }
-          }
-          if(temp.charAt(i) == ',') {
-            str+=",";
-          }
-          else if(temp.charAt(i) == ')') {
-            str+=" )";
-            this.query = str;
-            return true;
-          }
-          else {
-            return false;
-          }
-        }
-      }
+    start = temp.indexOf("(");
+    end = temp.indexOf(")");
+    if(start == -1 || end == -1 || start > end || (end-start == 1)) {
+      return false;
     }
+    str += " ( "+sanitizeString(temp,start,end)+" )";
+    this.query = str;
     return true;
   }
 
