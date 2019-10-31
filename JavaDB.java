@@ -79,6 +79,20 @@ class QueryProcessor {
         errorMessage("Invalid 'select' syantax !\nsyntax : select (column1,column2...) / * from 'table_name'");
       }
     }
+    else if(identifyCommand().equalsIgnoreCase("drop")) {
+      if(checkForDrop()) {
+        String table_name = this.query.split(" ")[2];
+        System.out.println("Want to drop table "+table_name+" ?  [y/n]");
+        String option = new Scanner(System.in).nextLine();
+        if(option.equalsIgnoreCase("no") || option.equalsIgnoreCase("n")) {
+          return;
+        }
+        dropTable(table_name);
+      }
+      else if(display_errm == 1){
+        errorMessage("Invalid 'drop' syantax !\nsyntax : drop table 'table_name'");
+      }
+    }
   }
 
   public String getQuery() {
@@ -538,6 +552,76 @@ class QueryProcessor {
     long elapsedTime = stopTime-startTime;
     System.out.println("Result in (0.00"+elapsedTime+" s)");
   }
+
+  private boolean checkForDrop() {
+    String str = new String("drop");
+    String temp = this.query;
+    if(temp.charAt(4) != ' ') {
+      return false;
+    }
+    int in_word = 0,start = 0,end = 0;
+    for(int i=5;i<temp.length();i++) {
+      if(temp.charAt(i) != ' ' && in_word == 0) {
+        in_word = 1;
+        start = i;
+      }
+      else if((temp.charAt(i) == ' ' || i == temp.length()-1) && in_word == 1) {
+        in_word = 0;
+        end = i-1;
+        if(i == temp.length()-1) {
+          return false;
+        }
+        if(temp.substring(start,end+1).equalsIgnoreCase("table") == false) {
+          return false;
+        }
+        str += " table";
+        break;
+      }
+    }
+    end++;
+    if(temp.charAt(end) != ' ') {
+      return false;
+    }
+    in_word = 0;
+    for(int i = end;i<temp.length();i++) {
+      if(temp.charAt(i) != ' ' && in_word == 0) {
+        start = i;
+        in_word = 1;
+      }
+      else if((temp.charAt(i) == ' ' || i == temp.length()-1) && in_word == 1) {
+        in_word = 0;
+        end = i-1;
+        if(i == temp.length()-1) {
+          end = i;
+        }
+        str += " "+temp.substring(start,end+1);
+        break;
+      }
+    }
+    if(end != temp.length()-1) {
+      return false;
+    }
+    if(tableExist(temp.substring(start,end+1)) == false) {
+      errorMessage(temp.substring(start,end+1)+" table doesn't exist !!");
+      display_errm = 0;
+      return false;
+    }
+    this.query = str;
+    return true;
+  }
+
+  private void dropTable(String tableName) {
+    File file = new File(target,tableName+".txt");
+    long startTime = System.currentTimeMillis();
+    if(file.delete()) {
+      long stopTime = System.currentTimeMillis();
+      long elapsedTime = stopTime-startTime;
+      System.out.println(tableName+" dropped !!  (0.00"+elapsedTime+" s)");
+    }
+    else {
+      System.out.println("Can't drop table !!");
+    }
+  } 
 
   private void errorMessage(String msg) {
     System.out.println("Error : "+msg);
