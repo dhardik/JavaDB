@@ -47,6 +47,38 @@ class QueryProcessor {
         errorMessage("Invalid 'insert' syantax !\nsyntax : insert into 'table_name' (column1,column2...) values (value1,value2...)");
       }
     }
+    else if(identifyCommand().equalsIgnoreCase("select")) {
+      if(checkForSelect() == true) {
+        String[] temp = this.query.split(" ");
+        String table_name = temp[temp.length-1];
+        if(tableExist(table_name) == false) {
+          display_errm = 0;
+          errorMessage(temp[temp.length-1]+" table does't exist !");
+        }
+        String[] columns = new String[0];
+        int flag = 0;
+        if(this.query.split(" ")[1].equals("*")) {
+          columns = fetchAllColumns(table_name);
+        }
+        else {
+          columns = this.query.split(" ",4)[2].split(",");
+          if(checkColumns(table_name,columns) == false) {
+            display_errm = 0;
+            errorMessage("columns don't match !");
+            flag = 1;
+          }
+        }
+        if(flag == 0) {
+          selectCommand(table_name,columns);
+        }
+        else {
+          return;
+        }
+      }
+      else if(display_errm == 1){
+        errorMessage("Invalid 'select' syantax !\nsyntax : select (column1,column2...) / * from 'table_name'");
+      }
+    }
   }
 
   public String getQuery() {
@@ -361,6 +393,150 @@ class QueryProcessor {
     long stopTime = System.currentTimeMillis();
     long elapsedTime = stopTime-startTime;
     System.out.println("1 row inserted in "+tableName+" !! (0.00"+elapsedTime+" s)");
+  }
+
+  private boolean checkForSelect() {
+    String str = new String("select");
+    String temp = this.query;
+    if(temp.length() > 6 && temp.charAt(6) != ' '){
+      return false;
+    }
+    if(temp.length() <= 6) {
+      return false;
+    }
+    int i = 0,in_word = 0,start = 0,end = 0;
+    for(i = 6;i<temp.length();i++) {
+      if(temp.charAt(i) != ' ' && in_word == 0) {
+        start = i;
+        in_word = 1;
+        if(temp.charAt(i) != '*' && temp.charAt(i) != '(') {
+          return false;
+        }
+        break;
+      }
+    }
+    if(temp.charAt(start) == '*') {
+      str += " *";
+      end = temp.indexOf("*");
+    }
+    else if(end == 0) {
+      end = temp.indexOf(")",start);
+      if(start == -1 || end == -1 || start > end || (end-start == 1)) {
+        return false;
+      }
+      str += " ( "+sanitizeString(temp,start,end)+" )";
+    }
+    in_word = 0;
+    end++;
+    if(temp.charAt(end) != ' ') {
+      return false;
+    }
+    for(i = end+1;i<temp.length();i++) {
+      if(temp.charAt(i) != ' ' && in_word == 0) {
+        start = i;
+        in_word = 1;
+      }
+      else if((temp.charAt(i) == ' ' || i == temp.length()-1)&& in_word == 1) {
+        in_word = 0;
+        end = i-1;
+        if(i == temp.length()-1) {
+          return false;
+        }
+        if(temp.substring(start,end+1).equalsIgnoreCase("from") == false) {
+          return false;
+        }
+        str += " from";
+        break;
+      }
+    }
+    end++;
+    if(temp.charAt(end) != ' ') {
+      return false;
+    }
+    in_word = 0;
+    for(i=end+1;i<temp.length();i++) {
+      if(temp.charAt(i) != ' ' && in_word == 0) {
+        in_word = 1;
+        start = i;
+      }
+      else if((temp.charAt(i) == ' ' || i == temp.length()-1) && in_word == 1) {
+        in_word = 0;
+        end = i-1;
+        if(i == temp.length()-1) {
+          end = i;
+        }
+        str += " "+temp.substring(start,end+1);
+        break;
+      } 
+    }
+    this.query = str;
+    return true;
+  }
+
+  private String[] fetchAllColumns(String tableName) {
+    int ch;
+    FileReader fr = null;
+    try {
+      fr = new FileReader(new File(target,tableName+".txt"));
+    } catch (FileNotFoundException ex) { 
+      return (new String[0]);
+    }
+    String s = new String();
+    try {
+      while((ch = fr.read()) != -1) {
+        s += (char)ch;
+      }
+    } catch(IOException ex) {
+      return (new String[0]);
+    }
+    String[] columnsFetched = s.split(";",2)[0].split(",");
+    return columnsFetched;
+  }
+
+  private void selectCommand(String tableName,String[] columns) {
+    long startTime = System.currentTimeMillis();
+    int ch;
+    FileReader fr = null;
+    try {
+      fr = new FileReader(new File(target,tableName+".txt"));
+    } catch (FileNotFoundException ex) { }
+    String s = new String();
+    try {
+      while((ch = fr.read()) != -1) {
+        s += (char)ch;
+      }
+    } catch(IOException ex) { }
+    String[] values = s.split(";");
+    String[] stdCols = values[0].split(",");
+    int[] indexes = new  int[values[0].split(",").length];
+    Arrays.fill(indexes,-1);
+    for(int i=0;i<columns.length;i++) {
+      indexes[i] = Arrays.asList(stdCols).indexOf(columns[i]);
+    }
+    for(int i=0;i<indexes.length;i++) {
+      if(i == 0) {
+        System.out.print("| ");
+      }
+      if(indexes[i] != -1) {
+        System.out.print(stdCols[indexes[i]]+" | ");
+      }
+    }
+    System.out.println();
+    for(int i=1;i<values.length;i++) {
+      String[] temp = values[i].split(",");
+      for(int j=0;j<indexes.length;j++) {
+        if(j == 0) {
+          System.out.print("| ");
+        }
+        if(indexes[j] != -1) {
+          System.out.print(temp[indexes[j]]+" | ");
+        }
+      }
+      System.out.println();
+    }
+    long stopTime = System.currentTimeMillis();
+    long elapsedTime = stopTime-startTime;
+    System.out.println("Result in (0.00"+elapsedTime+" s)");
   }
 
   private void errorMessage(String msg) {
