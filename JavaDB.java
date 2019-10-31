@@ -616,7 +616,7 @@ class QueryProcessor {
     if(file.delete()) {
       long stopTime = System.currentTimeMillis();
       long elapsedTime = stopTime-startTime;
-      System.out.println(tableName+" dropped !!  (0.00"+elapsedTime+" s)");
+      System.out.println(tableName+" table dropped !!  (0.00"+elapsedTime+" s)");
     }
     else {
       System.out.println("Can't drop table !!");
